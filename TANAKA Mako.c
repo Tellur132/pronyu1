@@ -6,7 +6,6 @@
 #define MAX_HP 100
 #define DECK_SIZE 52
 #define HAND_SIZE 5
-#define CARDS_PER_ROUND (HAND_SIZE * 2 + 1)
 
 /* ANSI color codes for background coloring */
 #define RESET "\x1b[0m"
@@ -29,15 +28,12 @@ typedef struct
 
 static void init_deck(Card deck[]);
 static void shuffle_deck(Card deck[]);
+static void deal_initial_hands(Card deck[], Player *player, Player *cpu);
 static void show_hand(const Card hand[]);
 static const char *suit_bg_color(char mark);
 static void print_card(const Card *card);
 static int evaluate_hand(const Card hand[]);
 static void print_intro(void);
-static void reset_deck(Card deck[]);
-static void deal_from_position(Card deck[], int *pos, Player *player, Player *cpu, Card *extra);
-
-static int deck_pos = 0;
 
 /* デッキを初期化する */
 static void init_deck(Card deck[])
@@ -68,32 +64,13 @@ static void shuffle_deck(Card deck[])
     }
 }
 
-/* 山札を初期化してシャッフルし、使用位置をリセットする */
-static void reset_deck(Card deck[])
-{
-    init_deck(deck);
-    shuffle_deck(deck);
-    deck_pos = 0;
-}
-
-
-/* デッキの現在位置からカードを配る */
-static void deal_from_position(Card deck[], int *pos, Player *player, Player *cpu, Card *extra)
+/* 最初の手札を配る */
+static void deal_initial_hands(Card deck[], Player *player, Player *cpu)
 {
     for (int i = 0; i < HAND_SIZE; ++i)
     {
-        player->hand[i] = deck[*pos];
-        (*pos)++;
-    }
-    for (int i = 0; i < HAND_SIZE; ++i)
-    {
-        cpu->hand[i] = deck[*pos];
-        (*pos)++;
-    }
-    if (extra)
-    {
-        *extra = deck[*pos];
-        (*pos)++;
+        player->hand[i] = deck[i];
+        cpu->hand[i] = deck[i + HAND_SIZE];
     }
 }
 
@@ -255,37 +232,14 @@ int main(void)
     print_intro();
     getchar();
 
-    int use_persistent_deck = 0;
-    int shuffle_threshold = 0;
-    printf("カードを使い切るまで再利用しないモードにしますか? (1:する 0:しない) : ");
-    scanf("%d", &use_persistent_deck);
-    if (use_persistent_deck)
-    {
-        printf("山札の残り枚数がいくつを下回ったらシャッフルしますか? : ");
-        scanf("%d", &shuffle_threshold);
-    }
-    getchar();
-
     while (player.hp > 0 && cpu.hp > 0)
     {
-        if (!use_persistent_deck)
-        {
-            reset_deck(deck);
-        }
-        else
-        {
-            int remaining = DECK_SIZE - deck_pos;
-            if (remaining < CARDS_PER_ROUND || remaining < shuffle_threshold)
-            {
-                printf("山札をシャッフルします\n");
-                reset_deck(deck);
-            }
-        }
-
-        Card player_extra;
-        deal_from_position(deck, &deck_pos, &player, &cpu, &player_extra);
+        init_deck(deck);
+        shuffle_deck(deck);
+        deal_initial_hands(deck, &player, &cpu);
 
         int player_choice;
+        Card player_extra = deck[HAND_SIZE * 2];
 
         printf("あなたの手札 :\n");
         show_hand(player.hand);
