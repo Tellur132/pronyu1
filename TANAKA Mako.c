@@ -655,19 +655,34 @@ int main(void)
 
         if (player_score > cpu_score)
         {
-            int damage = cpu_score / penalty_divisor;
-            cpu.hp -= damage;
-            printf("あなたの勝ち! CPUに%dダメージ\n", damage);
+            int win_dmg = player_score;
+            int lose_dmg = cpu_score / penalty_divisor;
+            cpu.hp -= win_dmg;
+            player.hp -= lose_dmg;
+            printf("あなたの勝ち! CPUに%dダメージ\n", win_dmg);
+            if (lose_dmg > 0)
+            {
+                printf("CPUからの反撃! あなたは%dダメージ\n", lose_dmg);
+            }
         }
         else if (cpu_score > player_score)
         {
-            int damage = player_score / penalty_divisor;
-            player.hp -= damage;
-            printf("CPUの勝ち! あなたは%dダメージ\n", damage);
+            int win_dmg = cpu_score;
+            int lose_dmg = player_score / penalty_divisor;
+            player.hp -= win_dmg;
+            cpu.hp -= lose_dmg;
+            printf("CPUの勝ち! あなたは%dダメージ\n", win_dmg);
+            if (lose_dmg > 0)
+            {
+                printf("あなたの反撃! CPUは%dダメージ\n", lose_dmg);
+            }
         }
         else
         {
-            printf("引き分け! ダメージなし\n");
+            int damage = player_score; /* cpu_score と同じ */
+            player.hp -= damage;
+            cpu.hp -= damage;
+            printf("引き分け! お互い%dダメージ\n", damage);
         }
 
         printf("あなたのHP : %d\n", player.hp);
