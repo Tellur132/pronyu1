@@ -37,6 +37,8 @@ static void print_intro(void);
 static void reset_deck(Card deck[]);
 static void deal_from_position(Card deck[], int *pos, Player *player, Player *cpu, Card *player_extra, Card *cpu_extra);
 static void cpu_exchange(Player *cpu, Card *extra);
+static void clear_screen(void);
+static void print_status(int round, const Player *player, const Player *cpu);
 
 static int deck_pos = 0;
 
@@ -371,6 +373,24 @@ static void cpu_exchange(Player *cpu, Card *extra)
     printf("\n");
 }
 
+/* 画面をクリアする */
+static void clear_screen(void)
+{
+    /* ANSI escape sequence to clear screen and move cursor */
+    printf("\x1b[2J\x1b[H");
+}
+
+/* ラウンド情報とHPを表示する */
+static void print_status(int round, const Player *player, const Player *cpu)
+{
+    clear_screen();
+    printf("===========================================\n");
+    printf("\t\t\x1b[1mポーカーバトル\x1b[0m\n");
+    printf("=============== Round %2d ================\n", round);
+    printf("あなたのHP: %3d\tCPUのHP: %3d\n", player->hp, cpu->hp);
+    printf("-------------------------------------------\n");
+}
+
 int main(void)
 {
     srand(time(NULL));
@@ -396,6 +416,7 @@ int main(void)
     /* 初回の山札準備 */
     reset_deck(deck);
 
+    int round = 1;
     while (player.hp > 0 && cpu.hp > 0)
     {
         if (!use_persistent_deck)
@@ -418,10 +439,11 @@ int main(void)
 
         int player_choice;
 
-        printf("あなたの手札 :\n");
+        print_status(round, &player, &cpu);
+        printf("あなたの手札 : ");
         show_hand(player.hand);
         printf("\n");
-        printf("cpuの手札 :\n");
+        printf("CPUの手札 : ");
         show_hand(cpu.hand);
         printf("\n");
         printf("1枚だけカードを交換できます(1~5 ,0:交換しない) :");
@@ -453,10 +475,11 @@ int main(void)
         printf("CPUの攻撃: %d ダメージ\n", cpu_damage);
         printf("あなたのHP : %d\n", player.hp);
         printf("CPUのHP : %d\n", cpu.hp);
-        printf("---------------------------\n");
+        printf("-------------------------------------------\n");
         printf("エンターキーを押して次のラウンドへ\n");
         getchar();
         getchar();
+        round++;
     }
 
     if (player.hp > 0)
