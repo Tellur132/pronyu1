@@ -35,7 +35,8 @@ static void print_card(const Card *card);
 static int evaluate_hand(const Card hand[]);
 static void print_intro(void);
 static void reset_deck(Card deck[]);
-static void deal_from_position(Card deck[], int *pos, Player *player, Player *cpu, Card *extra);
+static void deal_from_position(Card deck[], int *pos, Player *player, Player *cpu, Card *player_extra, Card *cpu_extra);
+static void cpu_exchange(Player *cpu, Card *extra);
 
 static int deck_pos = 0;
 
@@ -78,7 +79,8 @@ static void reset_deck(Card deck[])
 
 
 /* デッキの現在位置からカードを配る */
-static void deal_from_position(Card deck[], int *pos, Player *player, Player *cpu, Card *extra)
+/* デッキの現在位置からカードを配る */
+static void deal_from_position(Card deck[], int *pos, Player *player, Player *cpu, Card *player_extra, Card *cpu_extra)
 {
     for (int i = 0; i < HAND_SIZE; ++i)
     {
@@ -90,9 +92,14 @@ static void deal_from_position(Card deck[], int *pos, Player *player, Player *cp
         cpu->hand[i] = deck[*pos];
         (*pos)++;
     }
-    if (extra)
+    if (player_extra)
     {
-        *extra = deck[*pos];
+        *player_extra = deck[*pos];
+        (*pos)++;
+    }
+    if (cpu_extra)
+    {
+        *cpu_extra = deck[*pos];
         (*pos)++;
     }
 }
@@ -244,6 +251,126 @@ static void print_intro(void)
     printf("エンターキーを押してゲームを開始します\n");
 }
 
+/* CPUが1枚カードを交換する */
+static void cpu_exchange(Player *cpu, Card *extra)
+{
+    int score = evaluate_hand(cpu->hand);
+    int number_count[14] = {0};
+    int suit_count[4] = {0};
+    for (int i = 0; i < HAND_SIZE; ++i)
+    {
+        number_count[cpu->hand[i].number]++;
+        switch (cpu->hand[i].mark)
+        {
+            case 'H':
+                suit_count[0]++;
+                break;
+            case 'D':
+                suit_count[1]++;
+                break;
+            case 'C':
+                suit_count[2]++;
+                break;
+            case 'S':
+                suit_count[3]++;
+                break;
+        }
+    }
+
+    int candidates[HAND_SIZE];
+    int cand_count = 0;
+
+    if (score >= 30 && score != 40)
+    {
+        /* フラッシュやフルハウス以上は崩さない */
+        return;
+    }
+
+    if (score == 40)
+    {
+        for (int i = 0; i < HAND_SIZE; ++i)
+        {
+            if (number_count[cpu->hand[i].number] == 1)
+            {
+                candidates[cand_count++] = i;
+            }
+        }
+    }
+    else if (score == 20)
+    {
+        for (int i = 0; i < HAND_SIZE; ++i)
+        {
+            if (number_count[cpu->hand[i].number] != 3)
+            {
+                candidates[cand_count++] = i;
+            }
+        }
+    }
+    else if (score == 15)
+    {
+        for (int i = 0; i < HAND_SIZE; ++i)
+        {
+            if (number_count[cpu->hand[i].number] == 1)
+            {
+                candidates[cand_count++] = i;
+            }
+        }
+    }
+    else if (score == 12)
+    {
+        char flush_suit = 0;
+        char suits[4] = {'H', 'D', 'C', 'S'};
+        for (int s = 0; s < 4; ++s)
+        {
+            if (suit_count[s] == 4)
+            {
+                flush_suit = suits[s];
+                break;
+            }
+        }
+        for (int i = 0; i < HAND_SIZE; ++i)
+        {
+            if (cpu->hand[i].mark != flush_suit)
+            {
+                candidates[cand_count++] = i;
+            }
+        }
+    }
+    else if (score == 10)
+    {
+        for (int i = 0; i < HAND_SIZE; ++i)
+        {
+            if (number_count[cpu->hand[i].number] == 1)
+            {
+                candidates[cand_count++] = i;
+            }
+        }
+    }
+    else
+    {
+        for (int i = 0; i < HAND_SIZE; ++i)
+        {
+            candidates[cand_count++] = i;
+        }
+    }
+
+    if (cand_count == 0)
+    {
+        return;
+    }
+
+    int idx = candidates[rand() % cand_count];
+    Card old = cpu->hand[idx];
+    cpu->hand[idx] = *extra;
+
+    printf("CPUがカードを交換しました\n");
+    printf("CPU: ");
+    print_card(&old);
+    printf(" -> ");
+    print_card(extra);
+    printf("\n");
+}
+
 int main(void)
 {
     srand(time(NULL));
@@ -286,7 +413,8 @@ int main(void)
         }
 
         Card player_extra;
-        deal_from_position(deck, &deck_pos, &player, &cpu, &player_extra);
+        Card cpu_extra;
+        deal_from_position(deck, &deck_pos, &player, &cpu, &player_extra, &cpu_extra);
 
         int player_choice;
 
@@ -312,6 +440,8 @@ int main(void)
         {
             printf("交換しませんでした\n");
         }
+
+        cpu_exchange(&cpu, &cpu_extra);
 
         int player_damage = evaluate_hand(player.hand);
         int cpu_damage = evaluate_hand(cpu.hand);
