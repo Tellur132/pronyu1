@@ -1,40 +1,50 @@
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
-#define MAXHP 100
+#define MAX_HP    100
+#define DECK_SIZE 52
+#define HAND_SIZE 5
 
 typedef struct
 {
-    char mark;  //'H','D','C','S'
-    int number; // 1 ~ 13
+    char mark;       /* 'H','D','C','S' */
+    int  number;     /* 1 - 13         */
 } Card;
 
 typedef struct
 {
-    Card hand[5];
-    int hp;
+    Card hand[HAND_SIZE];
+    int  hp;
 } Player;
 
-void create(Card *deck) // deck:カードがたくさん並んでいる配列
-                        //*deck:最初のカードの場所
-                        // Card *deck:Card型のデータ（カード）が並んでいる場所の住所を渡す
+static void init_deck(Card deck[]);
+static void shuffle_deck(Card deck[]);
+static void deal_initial_hands(Card deck[], Player *player, Player *cpu);
+static void show_hand(const Card hand[]);
+static int  evaluate_hand(const Card hand[]);
+static void print_intro(void);
+
+/* デッキを初期化する */
+static void init_deck(Card deck[])
 {
     char marks[4] = {'H', 'D', 'C', 'S'};
-    int x = 0;
+    int  x = 0;
 
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < 4; ++i)
     {
-        for (int j = 1; j <= 13; j++)
+        for (int j = 1; j <= 13; ++j)
         {
-            deck[x].mark = marks[i];
+            deck[x].mark   = marks[i];
             deck[x].number = j;
             x++;
         }
     }
 }
 
-void shuffle(Card *deck)
+/* デッキをシャッフルする */
+static void shuffle_deck(Card deck[])
 {
     for (int k = 51; k > 0; k--)
     {
@@ -45,56 +55,68 @@ void shuffle(Card *deck)
     }
 }
 
-void show(Card *hand) // 手札表示する関数
+/* 最初の手札を配る */
+static void deal_initial_hands(Card deck[], Player *player, Player *cpu)
 {
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < HAND_SIZE; ++i)
+    {
+        player->hand[i] = deck[i];
+        cpu->hand[i]    = deck[i + HAND_SIZE];
+    }
+}
+
+/* 手札を表示する */
+static void show_hand(const Card hand[])
+{
+    for (int i = 0; i < HAND_SIZE; ++i)
     {
         printf("[%c %d]", hand[i].mark, hand[i].number);
     }
 }
 
-int evaluate(Card hand[])
+/* 手札の役を評価する */
+static int evaluate_hand(const Card hand[])
 {
     int count[14] = {0};
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < HAND_SIZE; ++i)
     {
         count[hand[i].number]++;
     }
-    int two = 0;
-    int three = 0;
-    int four = 0;
-    for (int i = 1; i <= 13; i++)
+    int pairs  = 0;
+    int three  = 0;
+    int four   = 0;
+    for (int i = 1; i <= 13; ++i)
     {
-        if (count[i] == 2)
+        if (count[i] == 4)
         {
-            two++;
+            four++;
         }
         else if (count[i] == 3)
         {
             three++;
         }
-        else
+        else if (count[i] == 2)
         {
-            four++;
+            pairs++;
         }
     }
-    if (four == 1)
+    if (four)
     {
         return 40;
     }
-    else if (three == 1 && two == 1)
+    else if (three && pairs)
     {
         return 35;
     }
-    else if (three == 1)
+    else if (three)
     {
         return 20;
     }
-    else if (two == 2)
+    else if (pairs == 2)
     {
         return 15;
     }
-    else if (two == 1)
+    else if (pairs == 1)
     {
         return 10;
     }
@@ -104,14 +126,11 @@ int evaluate(Card hand[])
     }
 }
 
-int main(void)
+/* ゲームの説明を表示する */
+static void print_intro(void)
 {
-    srand(time(NULL));
-    Card deck[52];
-    Player player = {player.hp = MAXHP};
-    Player cpu = {cpu.hp = MAXHP};
     printf("-------------------------------------------\n");
-    printf("         ポーカーバトル       \n");
+    printf("         \343\203\257\343\201\257\343\203\256\343\202\253\343\203\213\343\203\210\343\203\274       \n");
     printf("-------------------------------------------\n");
     printf("このゲームは、CPUとポーカーの手札の役の強さで戦うゲームです。\n");
     printf("お互いに5枚のカードが配られ、手札の役に応じて相手にダメージを与えます。\n");
@@ -126,42 +145,56 @@ int main(void)
     printf("HPが0になった方が負けです。\n");
     printf("-------------------------------------------\n");
     printf("エンターキーを押してゲームを開始します\n");
-    getchar(); // エンターキー押したら始まる
+}
+
+int main(void)
+{
+    srand(time(NULL));
+
+    Card deck[DECK_SIZE];
+    Player player = {.hp = MAX_HP};
+    Player cpu    = {.hp = MAX_HP};
+
+    print_intro();
+    getchar();
+
     while (player.hp > 0 && cpu.hp > 0)
     {
-        create(deck);
-        shuffle(deck);
+        init_deck(deck);
+        shuffle_deck(deck);
+        deal_initial_hands(deck, &player, &cpu);
+
         int player_choice;
-        for (int i = 0; i < 5; i++)
-        {
-            player.hand[i] = deck[i];
-            cpu.hand[i] = deck[i + 5];
-        }
-        Card player_extra = deck[10];
+        Card player_extra = deck[HAND_SIZE * 2];
+
         printf("あなたの手札 :\n");
-        show(player.hand);
+        show_hand(player.hand);
         printf("\n");
         printf("cpuの手札 :\n");
-        show(cpu.hand);
+        show_hand(cpu.hand);
         printf("\n");
         printf("1枚だけカードを交換できます(1~5 ,0:交換しない) :");
         scanf("%d", &player_choice);
-        if (player_choice >= 1 && player_choice <= 5)
+        if (player_choice >= 1 && player_choice <= HAND_SIZE)
         {
-            Card old_card = player.hand[player_choice-1];
+            Card old_card = player.hand[player_choice - 1];
             player.hand[player_choice - 1] = player_extra;
             printf("カードを交換しました :\n");
-            printf("[%c %d] → [%c %d]\n",old_card.mark,old_card.number,player_extra.mark,player_extra.number);
+            printf("[%c %d] \342\206\222 [%c %d]\n",
+                   old_card.mark, old_card.number,
+                   player_extra.mark, player_extra.number);
         }
         else
         {
             printf("交換しませんでした\n");
         }
 
-        int player_damage = evaluate(player.hand);
-        int cpu_damage = evaluate(cpu.hand);
-        cpu.hp = cpu.hp - player_damage;
-        player.hp = player.hp - cpu_damage;
+        int player_damage = evaluate_hand(player.hand);
+        int cpu_damage    = evaluate_hand(cpu.hand);
+
+        cpu.hp    -= player_damage;
+        player.hp -= cpu_damage;
+
         printf("あなたの攻撃: %dダメージ\n", player_damage);
         printf("CPUの攻撃: %d ダメージ\n", cpu_damage);
         printf("あなたのHP : %d\n", player.hp);
@@ -171,6 +204,7 @@ int main(void)
         getchar();
         getchar();
     }
+
     if (player.hp > 0)
     {
         printf("あなたの勝ちです!\n");
@@ -179,5 +213,6 @@ int main(void)
     {
         printf("CPUの勝ちです!\n");
     }
+
     return 0;
 }
