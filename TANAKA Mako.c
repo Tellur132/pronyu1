@@ -15,6 +15,7 @@
 #define BG_BLUE "\x1b[44m"
 #define BG_GREEN "\x1b[42m"
 #define BG_MAGENTA "\x1b[45m"
+#define CONFIG_FILE "config.txt"
 
 typedef struct
 {
@@ -41,6 +42,10 @@ static void deal_from_position(Card deck[], int *pos, Player *player, Player *cp
 static void cpu_exchange(Player *cpu, Card extras[], int extra_count);
 static void clear_screen(void);
 static void print_status(int round, const Player *player, const Player *cpu);
+static void title_screen(void);
+static void settings_menu(int *use_persistent_deck, int *shuffle_threshold, int *flexible_exchange);
+static void load_config(int *use_persistent_deck, int *shuffle_threshold, int *flexible_exchange);
+static void save_config(int use_persistent_deck, int shuffle_threshold, int flexible_exchange);
 
 static int deck_pos = 0;
 
@@ -258,7 +263,7 @@ static void print_intro(void)
     printf("ゲーム開始時に交換できる枚数(1枚固定または0から5枚)を選択できます。\n");
     printf("HPが0になった方が負けです。\n");
     printf("-------------------------------------------\n");
-    printf("エンターキーを押してゲームを開始します\n");
+    printf("エンターキーで戻ります\n");
 }
 
 /* CPUが指定枚数カードを交換する */
@@ -402,6 +407,80 @@ static void print_status(int round, const Player *player, const Player *cpu)
     printf("-------------------------------------------\n");
 }
 
+/* タイトル画面 */
+static void title_screen(void)
+{
+    clear_screen();
+    printf("===========================================\n");
+    printf("\t\t\x1b[1mポーカーバトル\x1b[0m\n");
+    printf("===========================================\n");
+    printf("1: ゲーム開始\n");
+    printf("2: ルール説明\n");
+    printf("3: 設定変更\n");
+    printf("4: 終了\n");
+    printf("-------------------------------------------\n");
+    printf("選択肢を入力してください: ");
+}
+
+/* 設定メニュー */
+static void settings_menu(int *use_persistent_deck, int *shuffle_threshold, int *flexible_exchange)
+{
+    clear_screen();
+    printf("============ 設定変更 ============\n");
+    printf("カードを使い切るまで再利用しないモードにしますか? (1:する 0:しない) : ");
+    scanf("%d", use_persistent_deck);
+    if (*use_persistent_deck)
+    {
+        printf("山札の残り枚数がいくつを下回ったらシャッフルしますか? : ");
+        scanf("%d", shuffle_threshold);
+    }
+    else
+    {
+        *shuffle_threshold = 0;
+    }
+    getchar();
+    printf("交換枚数自由モードにしますか? (1:0-5枚 0:1枚のみ) : ");
+    scanf("%d", flexible_exchange);
+    getchar();
+    printf("設定を保存しました。\n");
+    save_config(*use_persistent_deck, *shuffle_threshold, *flexible_exchange);
+    printf("エンターキーでタイトルに戻ります\n");
+    getchar();
+}
+
+/* 設定ファイルの読み込み */
+static void load_config(int *use_persistent_deck, int *shuffle_threshold, int *flexible_exchange)
+{
+    FILE *fp = fopen(CONFIG_FILE, "r");
+    if (fp)
+    {
+        if (fscanf(fp, "%d %d %d", use_persistent_deck, shuffle_threshold, flexible_exchange) != 3)
+        {
+            *use_persistent_deck = 0;
+            *shuffle_threshold = 0;
+            *flexible_exchange = 0;
+        }
+        fclose(fp);
+    }
+    else
+    {
+        *use_persistent_deck = 0;
+        *shuffle_threshold = 0;
+        *flexible_exchange = 0;
+    }
+}
+
+/* 設定ファイルの保存 */
+static void save_config(int use_persistent_deck, int shuffle_threshold, int flexible_exchange)
+{
+    FILE *fp = fopen(CONFIG_FILE, "w");
+    if (fp)
+    {
+        fprintf(fp, "%d %d %d\n", use_persistent_deck, shuffle_threshold, flexible_exchange);
+        fclose(fp);
+    }
+}
+
 int main(void)
 {
     srand(time(NULL));
@@ -410,23 +489,37 @@ int main(void)
     Player player = {.hp = MAX_HP};
     Player cpu = {.hp = MAX_HP};
 
-    print_intro();
-    getchar();
+    int use_persistent_deck;
+    int shuffle_threshold;
+    int flexible_exchange;
+    load_config(&use_persistent_deck, &shuffle_threshold, &flexible_exchange);
 
-    int use_persistent_deck = 0;
-    int shuffle_threshold = 0;
-    int flexible_exchange = 0;
-    printf("カードを使い切るまで再利用しないモードにしますか? (1:する 0:しない) : ");
-    scanf("%d", &use_persistent_deck);
-    if (use_persistent_deck)
+    while (1)
     {
-        printf("山札の残り枚数がいくつを下回ったらシャッフルしますか? : ");
-        scanf("%d", &shuffle_threshold);
+        int choice;
+        title_screen();
+        scanf("%d", &choice);
+        getchar();
+        if (choice == 1)
+        {
+            break;
+        }
+        else if (choice == 2)
+        {
+            print_intro();
+            getchar();
+        }
+        else if (choice == 3)
+        {
+            settings_menu(&use_persistent_deck, &shuffle_threshold, &flexible_exchange);
+        }
+        else if (choice == 4)
+        {
+            return 0;
+        }
     }
-    getchar();
-    printf("交換枚数自由モードにしますか? (1:0-5枚 0:1枚のみ) : ");
-    scanf("%d", &flexible_exchange);
-    getchar();
+
+    save_config(use_persistent_deck, shuffle_threshold, flexible_exchange);
 
     /* 初回の山札準備 */
     reset_deck(deck);
