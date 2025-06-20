@@ -7,6 +7,13 @@
 #define DECK_SIZE 52
 #define HAND_SIZE 5
 
+/* ANSI color codes for background coloring */
+#define RESET "\x1b[0m"
+#define BG_RED "\x1b[41m"
+#define BG_BLUE "\x1b[44m"
+#define BG_GREEN "\x1b[42m"
+#define BG_MAGENTA "\x1b[45m"
+
 typedef struct
 {
     char mark;  /* 'H','D','C','S' */
@@ -23,6 +30,8 @@ static void init_deck(Card deck[]);
 static void shuffle_deck(Card deck[]);
 static void deal_initial_hands(Card deck[], Player *player, Player *cpu);
 static void show_hand(const Card hand[]);
+static const char *suit_bg_color(char mark);
+static void print_card(const Card *card);
 static int evaluate_hand(const Card hand[]);
 static void print_intro(void);
 
@@ -70,8 +79,33 @@ static void show_hand(const Card hand[])
 {
     for (int i = 0; i < HAND_SIZE; ++i)
     {
-        printf("[%c %d]", hand[i].mark, hand[i].number);
+        print_card(&hand[i]);
     }
+}
+
+/* カードの模様から背景色を取得する */
+static const char *suit_bg_color(char mark)
+{
+    switch (mark)
+    {
+        case 'H':
+            return BG_RED;
+        case 'D':
+            return BG_BLUE;
+        case 'C':
+            return BG_GREEN;
+        case 'S':
+            return BG_MAGENTA;
+        default:
+            return "";
+    }
+}
+
+/* 色付きで1枚のカードを表示する */
+static void print_card(const Card *card)
+{
+    const char *color = suit_bg_color(card->mark);
+    printf("%s[%2d]%s", color, card->number, RESET);
 }
 
 /* 手札の役を評価する */
@@ -180,9 +214,10 @@ int main(void)
             Card old_card = player.hand[player_choice - 1];
             player.hand[player_choice - 1] = player_extra;
             printf("カードを交換しました :\n");
-            printf("[%c %d] \342\206\222 [%c %d]\n",
-                   old_card.mark, old_card.number,
-                   player_extra.mark, player_extra.number);
+            print_card(&old_card);
+            printf(" \342\206\222 ");
+            print_card(&player_extra);
+            printf("\n");
         }
         else
         {
