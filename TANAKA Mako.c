@@ -81,7 +81,6 @@ static void reset_deck(Card deck[])
     deck_pos = 0;
 }
 
-
 /* デッキの現在位置からカードを配る */
 /* デッキの現在位置からカードを配る */
 static void deal_from_position(Card deck[], int *pos, Player *player, Player *cpu,
@@ -129,16 +128,16 @@ static const char *suit_bg_color(char mark)
 {
     switch (mark)
     {
-        case 'H':
-            return BG_RED;
-        case 'D':
-            return BG_BLUE;
-        case 'C':
-            return BG_GREEN;
-        case 'S':
-            return BG_MAGENTA;
-        default:
-            return "";
+    case 'H':
+        return BG_RED;
+    case 'D':
+        return BG_BLUE;
+    case 'C':
+        return BG_GREEN;
+    case 'S':
+        return BG_MAGENTA;
+    default:
+        return "";
     }
 }
 
@@ -159,25 +158,25 @@ static int evaluate_hand(const Card hand[])
         count[hand[i].number]++;
         switch (hand[i].mark)
         {
-            case 'H':
-                suit_count[0]++;
-                break;
-            case 'D':
-                suit_count[1]++;
-                break;
-            case 'C':
-                suit_count[2]++;
-                break;
-            case 'S':
-                suit_count[3]++;
-                break;
+        case 'H':
+            suit_count[0]++;
+            break;
+        case 'D':
+            suit_count[1]++;
+            break;
+        case 'C':
+            suit_count[2]++;
+            break;
+        case 'S':
+            suit_count[3]++;
+            break;
         }
     }
     int pairs = 0;
     int three = 0;
     int four = 0;
-    int flush = 0;      /* 全て同じスート */
-    int four_suit = 0;  /* 4枚同じスート */
+    int flush = 0;     /* 全て同じスート */
+    int four_suit = 0; /* 4枚同じスート */
 
     for (int i = 0; i < 4; ++i)
     {
@@ -256,7 +255,7 @@ static void print_intro(void)
     printf("    フォーカード(色) (同じスート4枚): 12ダメージ\n");
     printf("    ワンペア (同じ数字2枚): 10ダメージ\n");
     printf("    役なし: 5ダメージ\n");
-    printf("ゲーム開始時に交換できる枚数(1枚固定または0\xE2\x80\x935枚)を選択できます。\n");
+    printf("ゲーム開始時に交換できる枚数(1枚固定または0から5枚)を選択できます。\n");
     printf("HPが0になった方が負けです。\n");
     printf("-------------------------------------------\n");
     printf("エンターキーを押してゲームを開始します\n");
@@ -275,18 +274,18 @@ static void cpu_exchange(Player *cpu, Card extras[], int extra_count)
             number_count[cpu->hand[i].number]++;
             switch (cpu->hand[i].mark)
             {
-                case 'H':
-                    suit_count[0]++;
-                    break;
-                case 'D':
-                    suit_count[1]++;
-                    break;
-                case 'C':
-                    suit_count[2]++;
-                    break;
-                case 'S':
-                    suit_count[3]++;
-                    break;
+            case 'H':
+                suit_count[0]++;
+                break;
+            case 'D':
+                suit_count[1]++;
+                break;
+            case 'C':
+                suit_count[2]++;
+                break;
+            case 'S':
+                suit_count[3]++;
+                break;
             }
         }
 
