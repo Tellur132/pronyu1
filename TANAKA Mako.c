@@ -43,9 +43,12 @@ static void cpu_exchange(Player *cpu, Card extras[], int extra_count);
 static void clear_screen(void);
 static void print_status(int round, const Player *player, const Player *cpu);
 static void title_screen(void);
-static void settings_menu(int *use_persistent_deck, int *shuffle_threshold, int *flexible_exchange);
-static void load_config(int *use_persistent_deck, int *shuffle_threshold, int *flexible_exchange);
-static void save_config(int use_persistent_deck, int shuffle_threshold, int flexible_exchange);
+static void settings_menu(int *use_persistent_deck, int *shuffle_threshold, int *flexible_exchange,
+                          int *show_cpu_hand, int *penalty_divisor);
+static void load_config(int *use_persistent_deck, int *shuffle_threshold, int *flexible_exchange,
+                        int *show_cpu_hand, int *penalty_divisor);
+static void save_config(int use_persistent_deck, int shuffle_threshold, int flexible_exchange,
+                        int show_cpu_hand, int penalty_divisor);
 
 static int deck_pos = 0;
 
@@ -424,7 +427,8 @@ static void title_screen(void)
 }
 
 /* 設定メニュー */
-static void settings_menu(int *use_persistent_deck, int *shuffle_threshold, int *flexible_exchange)
+static void settings_menu(int *use_persistent_deck, int *shuffle_threshold, int *flexible_exchange,
+                          int *show_cpu_hand, int *penalty_divisor)
 {
     clear_screen();
     printf("============ 設定変更 ============\n");
@@ -443,23 +447,34 @@ static void settings_menu(int *use_persistent_deck, int *shuffle_threshold, int 
     printf("交換枚数自由モードにしますか? (1:0-5枚 0:1枚のみ) : ");
     scanf("%d", flexible_exchange);
     getchar();
+    printf("CPUの手札を表示しますか? (1:する 0:しない) : ");
+    scanf("%d", show_cpu_hand);
+    getchar();
+    printf("負けた側のダメージ割り係数を入力してください(例:2) : ");
+    scanf("%d", penalty_divisor);
+    getchar();
     printf("設定を保存しました。\n");
-    save_config(*use_persistent_deck, *shuffle_threshold, *flexible_exchange);
+    save_config(*use_persistent_deck, *shuffle_threshold, *flexible_exchange,
+               *show_cpu_hand, *penalty_divisor);
     printf("エンターキーでタイトルに戻ります\n");
     getchar();
 }
 
 /* 設定ファイルの読み込み */
-static void load_config(int *use_persistent_deck, int *shuffle_threshold, int *flexible_exchange)
+static void load_config(int *use_persistent_deck, int *shuffle_threshold, int *flexible_exchange,
+                        int *show_cpu_hand, int *penalty_divisor)
 {
     FILE *fp = fopen(CONFIG_FILE, "r");
     if (fp)
     {
-        if (fscanf(fp, "%d %d %d", use_persistent_deck, shuffle_threshold, flexible_exchange) != 3)
+        if (fscanf(fp, "%d %d %d %d %d", use_persistent_deck, shuffle_threshold, flexible_exchange,
+                   show_cpu_hand, penalty_divisor) != 5)
         {
             *use_persistent_deck = 0;
             *shuffle_threshold = 0;
             *flexible_exchange = 0;
+            *show_cpu_hand = 1;
+            *penalty_divisor = 2;
         }
         fclose(fp);
     }
@@ -468,16 +483,20 @@ static void load_config(int *use_persistent_deck, int *shuffle_threshold, int *f
         *use_persistent_deck = 0;
         *shuffle_threshold = 0;
         *flexible_exchange = 0;
+        *show_cpu_hand = 1;
+        *penalty_divisor = 2;
     }
 }
 
 /* 設定ファイルの保存 */
-static void save_config(int use_persistent_deck, int shuffle_threshold, int flexible_exchange)
+static void save_config(int use_persistent_deck, int shuffle_threshold, int flexible_exchange,
+                        int show_cpu_hand, int penalty_divisor)
 {
     FILE *fp = fopen(CONFIG_FILE, "w");
     if (fp)
     {
-        fprintf(fp, "%d %d %d\n", use_persistent_deck, shuffle_threshold, flexible_exchange);
+        fprintf(fp, "%d %d %d %d %d\n", use_persistent_deck, shuffle_threshold,
+                flexible_exchange, show_cpu_hand, penalty_divisor);
         fclose(fp);
     }
 }
@@ -493,7 +512,10 @@ int main(void)
     int use_persistent_deck;
     int shuffle_threshold;
     int flexible_exchange;
-    load_config(&use_persistent_deck, &shuffle_threshold, &flexible_exchange);
+    int show_cpu_hand;
+    int penalty_divisor;
+    load_config(&use_persistent_deck, &shuffle_threshold, &flexible_exchange,
+                &show_cpu_hand, &penalty_divisor);
 
     while (1)
     {
@@ -512,7 +534,8 @@ int main(void)
         }
         else if (choice == 3)
         {
-            settings_menu(&use_persistent_deck, &shuffle_threshold, &flexible_exchange);
+            settings_menu(&use_persistent_deck, &shuffle_threshold, &flexible_exchange,
+                          &show_cpu_hand, &penalty_divisor);
         }
         else if (choice == 4)
         {
@@ -520,7 +543,8 @@ int main(void)
         }
     }
 
-    save_config(use_persistent_deck, shuffle_threshold, flexible_exchange);
+    save_config(use_persistent_deck, shuffle_threshold, flexible_exchange,
+                show_cpu_hand, penalty_divisor);
 
     /* 初回の山札準備 */
     reset_deck(deck);
@@ -556,7 +580,17 @@ int main(void)
         show_hand(player.hand);
         printf("\n");
         printf("CPUの手札 : ");
-        show_hand(cpu.hand);
+        if (show_cpu_hand)
+        {
+            show_hand(cpu.hand);
+        }
+        else
+        {
+            for (int i = 0; i < HAND_SIZE; ++i)
+            {
+                printf("[ ? ]");
+            }
+        }
         printf("\n");
         if (flexible_exchange)
         {
@@ -617,14 +651,26 @@ int main(void)
 
         cpu_exchange(&cpu, cpu_extras, extra_count);
 
-        int player_damage = evaluate_hand(player.hand);
-        int cpu_damage = evaluate_hand(cpu.hand);
+        int player_score = evaluate_hand(player.hand);
+        int cpu_score = evaluate_hand(cpu.hand);
 
-        cpu.hp -= player_damage;
-        player.hp -= cpu_damage;
+        if (player_score > cpu_score)
+        {
+            int damage = cpu_score / penalty_divisor;
+            cpu.hp -= damage;
+            printf("あなたの勝ち! CPUに%dダメージ\n", damage);
+        }
+        else if (cpu_score > player_score)
+        {
+            int damage = player_score / penalty_divisor;
+            player.hp -= damage;
+            printf("CPUの勝ち! あなたは%dダメージ\n", damage);
+        }
+        else
+        {
+            printf("引き分け! ダメージなし\n");
+        }
 
-        printf("あなたの攻撃: %dダメージ\n", player_damage);
-        printf("CPUの攻撃: %d ダメージ\n", cpu_damage);
         printf("あなたのHP : %d\n", player.hp);
         printf("CPUのHP : %d\n", cpu.hp);
         printf("-------------------------------------------\n");
