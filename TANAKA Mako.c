@@ -266,6 +266,9 @@ int main(void)
     }
     getchar();
 
+    /* 初回の山札準備 */
+    reset_deck(deck);
+
     while (player.hp > 0 && cpu.hp > 0)
     {
         if (!use_persistent_deck)
