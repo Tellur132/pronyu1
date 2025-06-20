@@ -283,11 +283,17 @@ static int popcount(int x)
 
 static void cpu_exchange(Player *cpu, Card extras[], int extra_count, int difficulty)
 {
+    int used_idx[HAND_SIZE] = {0};
     if (difficulty == 0)
     {
         for (int e = 0; e < extra_count; ++e)
         {
-            int idx = rand() % HAND_SIZE;
+            int idx;
+            do
+            {
+                idx = rand() % HAND_SIZE;
+            } while (used_idx[idx]);
+            used_idx[idx] = 1;
             Card old = cpu->hand[idx];
             cpu->hand[idx] = extras[e];
             printf("CPUがカードを交換しました\n");
@@ -400,7 +406,7 @@ static void cpu_exchange(Player *cpu, Card extras[], int extra_count, int diffic
         {
             for (int i = 0; i < HAND_SIZE; ++i)
             {
-                if (number_count[cpu->hand[i].number] == 1)
+                if (number_count[cpu->hand[i].number] == 1 && !used_idx[i])
                 {
                     candidates[cand_count++] = i;
                 }
@@ -410,7 +416,7 @@ static void cpu_exchange(Player *cpu, Card extras[], int extra_count, int diffic
         {
             for (int i = 0; i < HAND_SIZE; ++i)
             {
-                if (number_count[cpu->hand[i].number] != 3)
+                if (number_count[cpu->hand[i].number] != 3 && !used_idx[i])
                 {
                     candidates[cand_count++] = i;
                 }
@@ -420,7 +426,7 @@ static void cpu_exchange(Player *cpu, Card extras[], int extra_count, int diffic
         {
             for (int i = 0; i < HAND_SIZE; ++i)
             {
-                if (number_count[cpu->hand[i].number] == 1)
+                if (number_count[cpu->hand[i].number] == 1 && !used_idx[i])
                 {
                     candidates[cand_count++] = i;
                 }
@@ -440,7 +446,7 @@ static void cpu_exchange(Player *cpu, Card extras[], int extra_count, int diffic
             }
             for (int i = 0; i < HAND_SIZE; ++i)
             {
-                if (cpu->hand[i].mark != flush_suit)
+                if (cpu->hand[i].mark != flush_suit && !used_idx[i])
                 {
                     candidates[cand_count++] = i;
                 }
@@ -450,7 +456,7 @@ static void cpu_exchange(Player *cpu, Card extras[], int extra_count, int diffic
         {
             for (int i = 0; i < HAND_SIZE; ++i)
             {
-                if (number_count[cpu->hand[i].number] == 1)
+                if (number_count[cpu->hand[i].number] == 1 && !used_idx[i])
                 {
                     candidates[cand_count++] = i;
                 }
@@ -460,7 +466,8 @@ static void cpu_exchange(Player *cpu, Card extras[], int extra_count, int diffic
         {
             for (int i = 0; i < HAND_SIZE; ++i)
             {
-                candidates[cand_count++] = i;
+                if (!used_idx[i])
+                    candidates[cand_count++] = i;
             }
         }
 
@@ -470,6 +477,7 @@ static void cpu_exchange(Player *cpu, Card extras[], int extra_count, int diffic
         }
 
         int idx = candidates[rand() % cand_count];
+        used_idx[idx] = 1;
         Card old = cpu->hand[idx];
         cpu->hand[idx] = extras[e];
 
