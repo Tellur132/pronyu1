@@ -112,13 +112,43 @@ static void print_card(const Card *card)
 static int evaluate_hand(const Card hand[])
 {
     int count[14] = {0};
+    int suit_count[4] = {0}; /* H, D, C, S の順でスート数を数える */
     for (int i = 0; i < HAND_SIZE; ++i)
     {
         count[hand[i].number]++;
+        switch (hand[i].mark)
+        {
+            case 'H':
+                suit_count[0]++;
+                break;
+            case 'D':
+                suit_count[1]++;
+                break;
+            case 'C':
+                suit_count[2]++;
+                break;
+            case 'S':
+                suit_count[3]++;
+                break;
+        }
     }
     int pairs = 0;
     int three = 0;
     int four = 0;
+    int flush = 0;      /* 全て同じスート */
+    int four_suit = 0;  /* 4枚同じスート */
+
+    for (int i = 0; i < 4; ++i)
+    {
+        if (suit_count[i] == HAND_SIZE)
+        {
+            flush = 1;
+        }
+        else if (suit_count[i] == HAND_SIZE - 1)
+        {
+            four_suit = 1;
+        }
+    }
     for (int i = 1; i <= 13; ++i)
     {
         if (count[i] == 4)
@@ -141,6 +171,14 @@ static int evaluate_hand(const Card hand[])
     else if (three && pairs)
     {
         return 35;
+    }
+    else if (flush)
+    {
+        return 30;
+    }
+    else if (four_suit)
+    {
+        return 12;
     }
     else if (three)
     {
@@ -171,8 +209,10 @@ static void print_intro(void)
     printf("    --------役の強さ-------：\n");
     printf("    フォーカード (同じ数字4枚): 40ダメージ\n");
     printf("    フルハウス (同じ数字3枚 + 同じ数字2枚): 35ダメージ\n");
+    printf("    フラッシュ (同じスート5枚): 30ダメージ\n");
     printf("    スリーカード (同じ数字3枚): 20ダメージ\n");
     printf("    ツーペア (同じ数字2枚が2組): 15ダメージ\n");
+    printf("    フォーカード(色) (同じスート4枚): 12ダメージ\n");
     printf("    ワンペア (同じ数字2枚): 10ダメージ\n");
     printf("    役なし: 5ダメージ\n");
     printf("各ラウンドで1枚だけ手札を交換することができます。\n");
