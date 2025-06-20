@@ -555,7 +555,7 @@ static void settings_menu(int *use_persistent_deck, int *shuffle_threshold, int 
     getchar();
     printf("設定を保存しました。\n");
     save_config(*use_persistent_deck, *shuffle_threshold, *flexible_exchange,
-               *show_cpu_hand, *penalty_divisor, *difficulty);
+                *show_cpu_hand, *penalty_divisor, *difficulty);
     printf("エンターキーでタイトルに戻ります\n");
     getchar();
 }
