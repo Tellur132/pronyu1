@@ -3,40 +3,40 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define MAX_HP    100
+#define MAX_HP 100
 #define DECK_SIZE 52
 #define HAND_SIZE 5
 
 typedef struct
 {
-    char mark;       /* 'H','D','C','S' */
-    int  number;     /* 1 - 13         */
+    char mark;  /* 'H','D','C','S' */
+    int number; /* 1 - 13         */
 } Card;
 
 typedef struct
 {
     Card hand[HAND_SIZE];
-    int  hp;
+    int hp;
 } Player;
 
 static void init_deck(Card deck[]);
 static void shuffle_deck(Card deck[]);
 static void deal_initial_hands(Card deck[], Player *player, Player *cpu);
 static void show_hand(const Card hand[]);
-static int  evaluate_hand(const Card hand[]);
+static int evaluate_hand(const Card hand[]);
 static void print_intro(void);
 
 /* デッキを初期化する */
 static void init_deck(Card deck[])
 {
     char marks[4] = {'H', 'D', 'C', 'S'};
-    int  x = 0;
+    int x = 0;
 
     for (int i = 0; i < 4; ++i)
     {
         for (int j = 1; j <= 13; ++j)
         {
-            deck[x].mark   = marks[i];
+            deck[x].mark = marks[i];
             deck[x].number = j;
             x++;
         }
@@ -61,7 +61,7 @@ static void deal_initial_hands(Card deck[], Player *player, Player *cpu)
     for (int i = 0; i < HAND_SIZE; ++i)
     {
         player->hand[i] = deck[i];
-        cpu->hand[i]    = deck[i + HAND_SIZE];
+        cpu->hand[i] = deck[i + HAND_SIZE];
     }
 }
 
@@ -82,9 +82,9 @@ static int evaluate_hand(const Card hand[])
     {
         count[hand[i].number]++;
     }
-    int pairs  = 0;
-    int three  = 0;
-    int four   = 0;
+    int pairs = 0;
+    int three = 0;
+    int four = 0;
     for (int i = 1; i <= 13; ++i)
     {
         if (count[i] == 4)
@@ -130,7 +130,7 @@ static int evaluate_hand(const Card hand[])
 static void print_intro(void)
 {
     printf("-------------------------------------------\n");
-    printf("         \343\203\257\343\201\257\343\203\256\343\202\253\343\203\213\343\203\210\343\203\274       \n");
+    printf("\t\tポーカーバトル\t\t\n");
     printf("-------------------------------------------\n");
     printf("このゲームは、CPUとポーカーの手札の役の強さで戦うゲームです。\n");
     printf("お互いに5枚のカードが配られ、手札の役に応じて相手にダメージを与えます。\n");
@@ -153,7 +153,7 @@ int main(void)
 
     Card deck[DECK_SIZE];
     Player player = {.hp = MAX_HP};
-    Player cpu    = {.hp = MAX_HP};
+    Player cpu = {.hp = MAX_HP};
 
     print_intro();
     getchar();
@@ -190,9 +190,9 @@ int main(void)
         }
 
         int player_damage = evaluate_hand(player.hand);
-        int cpu_damage    = evaluate_hand(cpu.hand);
+        int cpu_damage = evaluate_hand(cpu.hand);
 
-        cpu.hp    -= player_damage;
+        cpu.hp -= player_damage;
         player.hp -= cpu_damage;
 
         printf("あなたの攻撃: %dダメージ\n", player_damage);
